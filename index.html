@@ -20,21 +20,33 @@
 </div>
 
 <script>
-    // 你的 n8n 表單測試或正式網址（原本填在 LINE 後台的那串）
+    // 你的 n8n 表單網址
     const n8nFormUrl = "https://n8nchen0823.zeabur.app/form-test/bf5bb3ad-39a5-4e47-88bb-fd2abc41e65e";
 
+    // 依據截圖修正為正確的 LIFF ID (包含小寫 l)
     liff.init({ liffId: "2010753835-STtRlyZK" }) 
         .then(() => {
             if (!liff.isLoggedIn()) {
                 liff.login();
             } else {
                 liff.getProfile().then(profile => {
-                    // 核心魔法：把抓到的 UserID 用 ?line_uid= 的方式接在 n8n 表單網址後面
+                    // 自動把抓到的 UserID 接在網址後面
                     const targetUrl = `${n8nFormUrl}?line_uid=${profile.userId}`;
                     
-                    // 自動跳轉到帶有 ID 的 n8n 表單
+                    // 跳轉到你的 n8n 表單
                     window.location.href = targetUrl;
                 }).catch(err => {
+                    alert("讀取 LINE 帳號失敗，請重新開啟");
+                });
+            }
+        })
+        .catch((err) => {
+            alert("系統初始化失敗");
+        });
+</script>
+
+</body>
+</html>                }).catch(err => {
                     alert("讀取 LINE 帳號失敗，請重新開啟");
                 });
             }
