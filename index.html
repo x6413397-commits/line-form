@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>預約清潔服務</title>
+    <!-- 引入 LINE LIFF SDK -->
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f4f7f6; }
+        .form-container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0px 4px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        button { width: 100%; padding: 12px; margin-top: 25px; background-color: #28a745; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .loading { text-align: center; color: #666; font-size: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <h2>預約清潔服務</h2>
+    <div id="status" class="loading">正在向 LINE 安全驗證中...</div>
+    
+    <form id="bookingForm" style="display:none;">
+        <!-- 隱藏欄位：用來存放自動抓到的 LINE User ID -->
+        <input type="hidden" id="line_uid" name="line_uid">
+
+        <label>請問您是？</label>
+        <select id="client_type" required>
+            <option value="我是新客戶">我是新客戶</option>
+            <option value="我是舊客戶">我是舊客戶</option>
+        </select>
+
+        <label>姓名</label>
+        <input type="text" id="name" required placeholder="請輸入姓名">
+
+        <label>電話</label>
+        <input type="tel" id="phone" required placeholder="請輸入電話">
+
+        <button type="submit">提交預約資料</button>
+    </form>
+</div>
+
+<script>
+    // 1. 初始化 LINE LIFF
+    liff.init({ liffId: "U270d6451a5104a26a17da6c8db7f9dd2" }) 
+        .then(() => {
+            if (!liff.isLoggedIn()) {
+                liff.login(); // 如果沒登入，強制引導在 LINE 內登入授權
+            } else {
+                // 2. 成功登入後，背景秒抓 User ID
+                liff.getProfile().then(profile => {
+                    document.getElementById('line_uid').value = profile.userId;
+                    document.getElementById('status').style.display = 'none';
+                    document.getElementById('bookingForm').style.display = 'block'; // 顯示表單
+                }).catch(err => {
+                    document.getElementById('status').innerText = "抓取 ID 失敗: " + err;
+                });
+            }
+        })
+        .catch((err) => {
+            document.getElementById('status').innerText = "LIFF 初始化失敗: " + err;
+        });
+
+    // 3. 表單送出時，打包資料 POST 給 n8n Webhook
+    document.getElementById('bookingForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const data = {
+            line_uid: document.getElementById('line_uid').value,
+            client_type: document.getElementById('client_type').value,
+            name: document.getElementById('name').value,
+            phone: document.getElementById('phone').value
+        };
+
+        document.getElementById('status').innerText = "正在送出資料...";
+        document.getElementById('status').style.display = 'block';
+
+        fetch("https://n8nchen0823.zeabur.app/form-test/bf5bb3ad-39a5-4e47-88bb-fd2abc41e65e", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        })
+        .then(res => {
+            alert("預約成功！表單已關閉，請回到 LINE 聊天室查看確認信。");
+            liff.closeWindow(); // 成功後自動關閉表單視窗
+        })
+        .catch(err => {
+            alert("傳送失敗，請稍後再試。");
+        });
+    });
+</script>
+
+</body>
+</html>
